@@ -1,0 +1,2 @@
+#!/bin/bash
+python ./network.py --model postks --data_dir ./data/personachat --max_dec_len 21 --max_vocab_size 20000 --use_posterior False --gen_file ./output/postks/personachat/test.result --gold_score_file ./output/postks/personachat/gold.scores --gpu 2 --ckpt ./models/PostKS/personachat/best.model --test > output/PostKS/personachat/test.log

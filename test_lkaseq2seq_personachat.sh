@@ -1,0 +1,2 @@
+#!/bin/bash
+python ./network.py --model lkaseq2seq --data_dir ./data/personachat --max_vocab_size 20000 --use_posterior False --gen_file ./output/lkaseq2seq/personachat/test.result --gold_score_file ./output/lkaseq2seq/personachat/gold.scores --gpu 1 --ckpt ./models/lkaseq2seq/personachat/best.model --test > output/lkaseq2seq/personachat/test.log
