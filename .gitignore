@@ -1,4 +1,5 @@
 models
 output
 data
+!/source/models/
 *.pyc
