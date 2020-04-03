@@ -33,7 +33,7 @@ class LkaSeq2seq(BaseModel):
                  num_layers=1, bidirectional=True, attn_mode="mlp", attn_hidden_size=None, 
                  with_bridge=False, tie_embedding=False, dropout=0.0, use_gpu=False, use_bow=False,
                  use_kd=False, use_dssm=False, use_posterior=False, weight_control=False, 
-                 use_pg=False, use_gs=False, gs_tau=1.0, concat=False, copy=False, pretrain_epoch=0):
+                 use_pg=False, use_gs=False, gs_tau=1.0, concat=False, copy=False, kl_annealing=False, pretrain_epoch=0):
         super(LkaSeq2seq, self).__init__()
 
         self.src_vocab_size = src_vocab_size
@@ -60,6 +60,7 @@ class LkaSeq2seq(BaseModel):
         self.pretrain_epoch = pretrain_epoch
         self.baseline = 0
         self.copy = copy
+        self.kl_annealing = kl_annealing
 
         enc_embedder = Embedder(num_embeddings=self.src_vocab_size,
                                 embedding_dim=self.embed_size, padding_idx=self.padding_idx)
