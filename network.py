@@ -12,9 +12,7 @@ File: network.py
 """
 
 import os
-import sys
 import json
-import shutil
 import logging
 import argparse
 import torch
@@ -76,6 +74,7 @@ def model_config():
     train_arg.add_argument("--use_pg", type=str2bool, default=False)
     train_arg.add_argument("--use_gs", type=str2bool, default=False)
     train_arg.add_argument("--gs_tau", type=float, default=0.2)
+    train_arg.add_argument("--kl_annealing", type=str2bool, default=False)
     train_arg.add_argument("--use_kd", type=str2bool, default=False)
     train_arg.add_argument("--weight_control", type=str2bool, default=False)
     train_arg.add_argument("--decode_concat", type=str2bool, default=False)
@@ -149,7 +148,8 @@ def main():
                                  use_posterior=config.use_posterior,
                                  weight_control=config.weight_control,
                                  concat=config.decode_concat,
-                                 copy=config.copy)
+                                 copy=config.copy,
+                                 kl_annealing=config.kl_annealing)
     elif config.model=='lkaseq2seq':
         model = LkaSeq2seq(src_vocab_size=corpus.SRC.vocab_size,
                            tgt_vocab_size=corpus.TGT.vocab_size,
@@ -165,7 +165,8 @@ def main():
                            use_posterior=config.use_posterior,
                            weight_control=config.weight_control,
                            concat=config.decode_concat,
-                           copy=config.copy)
+                           copy=config.copy,
+                           kl_annealing=config.kl_annealing)
     elif config.model=='seq2seq':
         model = Seq2Seq(src_vocab_size=corpus.SRC.vocab_size,
                         tgt_vocab_size=corpus.TGT.vocab_size,
