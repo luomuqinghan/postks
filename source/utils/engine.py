@@ -322,7 +322,7 @@ def evaluate_generation(generator,
                         data_iter,
                         save_file=None,
                         num_batches=None,
-                        verbos=False):
+                        verbose=False):
     """
     evaluate_generation
     """
@@ -362,7 +362,7 @@ def evaluate_generation(generator,
     if save_file is not None:
         write_results(results, save_file)
         print("Saved generation results to '{}'".format(save_file))
-    if verbos:
+    if verbose:
         print(message)
     else:
         return message

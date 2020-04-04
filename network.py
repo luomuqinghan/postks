@@ -195,7 +195,7 @@ def main():
         metrics, scores = evaluate(model, test_iter)
         print(metrics.report_cum())
         print("Generating ...")
-        evaluate_generation(generator, test_iter, save_file=config.gen_file, verbos=True)
+        evaluate_generation(generator, test_iter, save_file=config.gen_file, verbose=True)
     else:
         # Load word embeddings
         if config.use_embed and config.embed_file is not None:
@@ -248,7 +248,7 @@ def main():
         logger.info(metrics.report_cum())
         logger.info("Generation starts ...")
         test_gen_file = os.path.join(config.save_dir, "test.result")
-        evaluate_generation(generator, test_iter, save_file=test_gen_file, verbos=True)
+        evaluate_generation(generator, test_iter, save_file=test_gen_file, verbose=True)
 
 
 if __name__ == '__main__':

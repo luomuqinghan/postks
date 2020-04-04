@@ -159,6 +159,32 @@ for i in range(len(test)):
     test[i][0] = [[BOS_ID]+[vocab_dict.get(y, UNK_ID) for y in sentences[x]]+[EOS_ID] for x in test[i][0]]
     test[i][1] = [[[BOS_ID]+[vocab_dict.get(z, UNK_ID) for z in sentences[y]]+[EOS_ID] for y in x] for x in test[i][1]]
 
+# idf = [0 for _ in range(len(vocab_list))]
+# data = train + valid + test
+# knowledge = [y[1:-1] for x in data for y in x[0]]
+# for x in knowledge:
+#     for y in set(x):
+#         idf[y] += 1
+# idf = np.log(len(knowledge)/(1+np.array(idf)))
+#
+# index = []
+# for i in range(len(train)):
+#     index.append([])
+#     knowledge = [x[1:-1] for x in train[i][0]]
+#     tf = np.zeros((len(knowledge),len(vocab_list)))
+#     for j in range(len(knowledge)):
+#         for x in knowledge[j]:
+#             tf[j,x] += 1
+#     tf /= np.sum(tf,axis=1,keepdims=True)
+#     tf_idf = tf*idf[np.newaxis,:]
+#     keywords = np.argsort(-tf_idf,axis=1)[:,:2]
+#     for j in range(len(train[i][1])):
+#         index[-1].append([])
+#         response = train[i][1][j][1][1:-1]
+#         for k in range(len(knowledge)):
+#             if keywords[k,0] in response or keywords[k,1] in response:
+#                 index[i][j].append(k)
+
 data = {}
 data['train'] = []
 for x in train:
