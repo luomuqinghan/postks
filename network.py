@@ -53,6 +53,7 @@ def model_config():
     net_arg.add_argument("--num_layers", type=int, default=1)
     net_arg.add_argument("--attn", type=str, default='dot',
                          choices=['none', 'mlp', 'dot', 'general'])
+    # 设置为True表示copy机制
     net_arg.add_argument("--copy", type=str2bool, default=False)
     net_arg.add_argument("--share_vocab", type=str2bool, default=True)
     net_arg.add_argument("--with_bridge", type=str2bool, default=True)
@@ -74,6 +75,7 @@ def model_config():
     train_arg.add_argument("--use_pg", type=str2bool, default=False)
     train_arg.add_argument("--use_gs", type=str2bool, default=False)
     train_arg.add_argument("--gs_tau", type=float, default=0.2)
+    # 设置为True表示使用kl cost annealing代替bow loss进行预训练
     train_arg.add_argument("--kl_annealing", type=str2bool, default=False)
     train_arg.add_argument("--use_kd", type=str2bool, default=False)
     train_arg.add_argument("--weight_control", type=str2bool, default=False)
