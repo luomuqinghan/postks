@@ -33,7 +33,7 @@ class DecoderState(object):
         get_batch_size
         """
         if self.hidden is not None:
-            return self.hidden.size(0)
+            return self.hidden.size(1)
         else:
             return next(iter(self.__dict__.values())).size(0)
 
@@ -51,7 +51,7 @@ class DecoderState(object):
         kwargs = {}
         for k, v in self.__dict__.items():
             if k[-6:]=='hidden':
-                kwargs[k] = v[:stop].clone()
+                kwargs[k] = v[:,:stop].clone()
             else:
                 kwargs[k] = v[:stop]
         return DecoderState(**kwargs)
@@ -62,7 +62,10 @@ class DecoderState(object):
         """
         kwargs = {}
         for k, v in self.__dict__.items():
-            kwargs[k] = v.index_select(0, indices)
+            if k[-6:]=='hidden':
+                kwargs[k] = v.index_select(1, indices)
+            else:
+                kwargs[k] = v.index_select(0, indices)
         return DecoderState(**kwargs)
 
     def mask_select(self, mask):
@@ -71,7 +74,10 @@ class DecoderState(object):
         """
         kwargs = {}
         for k, v in self.__dict__.items():
-            kwargs[k] = v[mask]
+            if k[-6:] == 'hidden':
+                kwargs[k] = v[:,mask]
+            else:
+                kwargs[k] = v[mask]
         return DecoderState(**kwargs)
 
     def _inflate_tensor(self, X, times):
@@ -95,5 +101,9 @@ class DecoderState(object):
         """
         kwargs = {}
         for k, v in self.__dict__.items():
-            kwargs[k] = self._inflate_tensor(v, times)
+            if k[-6:] == 'hidden':
+                num_layers, batch_size, _ = v.size()
+                kwargs[k] = v.repeat(1, 1, times).view(num_layers, batch_size * times, -1)
+            else:
+                kwargs[k] = self._inflate_tensor(v, times)
         return DecoderState(**kwargs)

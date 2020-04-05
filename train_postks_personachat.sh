@@ -1,2 +1,2 @@
 #!/bin/bash
-python ./network.py --use_gs True --gs_tau 0.2 --kl_annealing True --model postks --data_dir ./data/personachat --save_dir ./models/postks/personachat --embed_file /home/cx/WordEmbedding/glove.6B.300d.txt --max_vocab_size 20000 --lr 0.0005 --max_dec_len 21 --valid_steps 958 --gpu 0
+python ./network.py --gpu 3 --use_gs True --gs_tau 0.2 --model postks --data_dir ./data/personachat --save_dir ./models/postks/personachat --embed_file /home/cx/WordEmbedding/glove.6B.300d.txt --max_vocab_size 20000 --lr 0.0005 --max_dec_len 21 --valid_steps 958

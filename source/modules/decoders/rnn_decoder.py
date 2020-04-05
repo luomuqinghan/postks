@@ -111,7 +111,7 @@ class RNNDecoder(nn.Module):
         """
         decode
         """
-        hidden = state.hidden.transpose(0,1)
+        hidden = state.hidden
         rnn_input_list = []
         out_input_list = []
         output = Pack()
@@ -143,7 +143,7 @@ class RNNDecoder(nn.Module):
         out_input_list.append(rnn_output)
 
         out_input = torch.cat(out_input_list, dim=-1)
-        state.hidden = new_hidden.transpose(0,1)
+        state.hidden = new_hidden
 
         if is_training:
             return out_input, state, output
@@ -175,7 +175,7 @@ class RNNDecoder(nn.Module):
             valid_state = state.slice_select(num_valid)
             out_input, valid_state, _ = self.decode(
                 dec_input, valid_state, is_training=True)
-            state.hidden[:num_valid, :] = valid_state.hidden
+            state.hidden[:,:num_valid] = valid_state.hidden
             out_inputs[:num_valid, i] = out_input.squeeze(1)
 
         # Resort

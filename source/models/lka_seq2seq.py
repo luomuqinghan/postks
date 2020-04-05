@@ -163,16 +163,6 @@ class LkaSeq2seq(BaseModel):
                                                       mask=inputs.cue[1].eq(0))
         cue_attn = cue_attn.squeeze(1)
         outputs.add(prior_attn=cue_attn)
-        indexs = cue_attn.max(dim=1)[1]
-        # hard attention
-        if self.use_gs:
-            knowledge = cue_outputs.gather(1, \
-                indexs.view(-1,1,1).repeat(1, 1, cue_outputs.size(-1)))
-            cue_memory = cue_enc_outputs.gather(1, \
-                indexs.view(-1,1,1,1).repeat(1, 1, cue_enc_outputs.size(2), cue_enc_outputs.size(3))).squeeze(1)
-        else:
-            knowledge = weighted_cue
-            cue_memory = torch.sum(cue_attn.view(batch_size,sent_num,1,1)*cue_enc_outputs, dim=1)
 
         if self.use_posterior:
             tgt_enc_inputs = inputs.tgt[0][:, 1:-1], inputs.tgt[1]-2
@@ -219,10 +209,19 @@ class LkaSeq2seq(BaseModel):
                 indexs = gumbel_attn.max(-1)[1]
                 cue_memory = torch.sum(gumbel_attn.view(batch_size,sent_num,1,1)*cue_enc_outputs, dim=1)
             else:
+                indexs = cue_attn.max(dim=1)[1]
                 knowledge = weighted_cue
+                cue_memory = torch.sum(cue_attn.view(batch_size,sent_num,1,1)*cue_enc_outputs, dim=1)
+        else:
+            indexs = cue_attn.max(dim=1)[1]
+            if self.use_gs:
+                knowledge = cue_outputs.gather(1, indexs.view(-1, 1, 1).repeat(1, 1, cue_outputs.size(-1)))
+                cue_memory = cue_enc_outputs.gather(1, indexs.view(-1, 1, 1, 1).repeat(1, 1, cue_enc_outputs.size(2), cue_enc_outputs.size(3))).squeeze(1)
+            else:
+                knowledge = weighted_cue
+                cue_memory = torch.sum(cue_attn.view(batch_size, sent_num, 1, 1) * cue_enc_outputs, dim=1)
 
-        cue_length = inputs.cue[1].gather(1, \
-            indexs.view(-1,1)).squeeze(1)
+        cue_length = inputs.cue[1].gather(1, indexs.view(-1,1)).squeeze(1)
         outputs.add(indexs=indexs)
         if 'index' in inputs.keys():
             outputs.add(attn_index=inputs.index)
@@ -240,7 +239,7 @@ class LkaSeq2seq(BaseModel):
 
         if self.copy:
             dec_init_state = self.decoder.initialize_state(
-                hidden=enc_hidden.transpose(0,1),
+                hidden=enc_hidden,
                 src_enc_outputs=enc_outputs,
                 src_inputs=enc_inputs[0],
                 src_lengths=lengths,
@@ -252,7 +251,7 @@ class LkaSeq2seq(BaseModel):
                 selected_cue_length=cue_length)
         else:
             dec_init_state = self.decoder.initialize_state(
-                hidden=enc_hidden.transpose(0,1),
+                hidden=enc_hidden,
                 src_enc_outputs=enc_outputs,
                 src_inputs=enc_inputs[0],
                 src_lengths=lengths,

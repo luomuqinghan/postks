@@ -168,7 +168,7 @@ class RNNDecoder(nn.Module):
         """
         decode
         """
-        hidden = state.hidden.transpose(0,1)
+        hidden = state.hidden
         rnn_input_list = []
         cue_input_list = []
         out_input_list = []
@@ -189,7 +189,7 @@ class RNNDecoder(nn.Module):
             cue_input_list.append(feature)
 
         if self.attn_mode is not None:
-            weighted_context, attn = self.attention(query=hidden.transpose(0,1),
+            weighted_context, attn = self.attention(query=hidden[-1].unsqueeze(1),
                                                     memory=state.src_enc_outputs,
                                                     mask=state.src_mask)
             rnn_input_list.append(weighted_context)
@@ -205,7 +205,7 @@ class RNNDecoder(nn.Module):
         cue_output, cue_hidden = self.cue_rnn(cue_input, hidden)
 
         h_y = self.tanh(self.fc1(rnn_hidden))
-        local_knowledge, local_cue_attn = self.cue_attention(query=h_y.transpose(0,1),
+        local_knowledge, local_cue_attn = self.cue_attention(query=h_y[-1].unsqueeze(1),
                                                              memory=state.selected_cue_memory,
                                                              mask=state.selected_cue_mask)
         output.add(local_cue_attn=local_cue_attn)
@@ -221,26 +221,26 @@ class RNNDecoder(nn.Module):
             output.add(k=k)
             k = k.split(1, dim=-1)
             new_hidden = k[0] * h_y + k[1] * h_cue + k[2] * local_h_cue
-        out_input_list.append(new_hidden.transpose(0, 1))
+        out_input_list.append(new_hidden[-1].unsqueeze(1))
         out_input = torch.cat(out_input_list, dim=-1)
 
         prob = self.output_layer(out_input)
         if self.copy:
             batch_size, sent_num, sent, _ = state.cue_enc_outputs.size()
-            _, knowledge_attn = self.attention(query=hidden.transpose(0,1).repeat(sent_num,1,1),
+            _, knowledge_attn = self.attention(query=hidden[-1].unsqueeze(1).repeat(sent_num,1,1),
                                                memory=state.cue_enc_outputs.view(batch_size*sent_num,sent,-1),
                                                mask=state.cue_mask.view(batch_size*sent_num,-1))
             knowledge_attn = state.cue_attn.unsqueeze(2) * knowledge_attn.squeeze(1).view(batch_size,sent_num,-1)
             knowledge_attn = knowledge_attn.view(batch_size,1,-1)
             output.add(knowledge_attn=knowledge_attn)
-            p = F.softmax(self.fc5(torch.cat([input,new_hidden.transpose(0,1),weighted_context,state.knowledge],dim=-1)),dim=-1)
+            p = F.softmax(self.fc5(torch.cat([input,new_hidden[-1].unsqueeze(1),weighted_context,state.knowledge],dim=-1)),dim=-1)
             output.add(p=p)
             p = p.split(1,dim=2)
             prob = (p[0]*prob).scatter_add(2, state.src_inputs.unsqueeze(1), p[1]*attn)
             prob = prob.scatter_add(2, state.cue_inputs.view(batch_size,1,-1), p[2]*knowledge_attn)
         log_prob = torch.log(prob+1e-10)
 
-        state.hidden = new_hidden.transpose(0,1)
+        state.hidden = new_hidden
         return log_prob, state, output
 
     def forward(self, inputs, state):
@@ -267,7 +267,7 @@ class RNNDecoder(nn.Module):
             valid_state = state.slice_select(num_valid)
             log_prob, valid_state, _ = self.decode(
                 dec_input, valid_state, is_training=True)
-            state.hidden[:num_valid,:] = valid_state.hidden
+            state.hidden[:,:num_valid] = valid_state.hidden
             log_probs[:num_valid, i] = log_prob.squeeze(1)
 
         # Resort

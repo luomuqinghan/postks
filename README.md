@@ -19,31 +19,24 @@ This is a pytorch implementation of generative-based model for knowledge-driven 
 
 ### Step 1: Preprocess the data
 
-Put the data provided by the organizer under the data folder and rename them  train/dev/test.txt: 
+运行tools下的[数据集名称].py即可得到.pt格式的数据集文件，例如
 
 ```
-./data/resource/train.txt
-./data/resource/dev.txt
-./data/resource/test.txt
+python tools/personachat.py
 ```
 
 ### Step 2: Train the model
 
-Train model with the following commands.
+运行train_[模型名称]_[数据集名称].sh即可训练，例如
 
 ```bash
-sh run_train.sh
+sh train_seq2seq_personachat.sh
 ```
 
 ### Step 3: Test the Model
 
-Test model with the following commands.
+运行train_[模型名称]_[数据集名称].sh即可测试，例如
 
 ```bash
-sh run_test.sh
+sh test_seq2seq_personachat.sh
 ```
-
-### Note !!!
-
-* The script run_train.sh/run_test.sh shows all the processes including data processing and model training/testing. Be sure to read it carefully and follow it.
-* The files in ./data and ./model is just empty file to show the structure of the document.

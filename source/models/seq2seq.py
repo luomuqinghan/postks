@@ -120,7 +120,7 @@ class Seq2Seq(BaseModel):
             enc_hidden = self.bridge(enc_hidden)
 
         dec_init_state = self.decoder.initialize_state(
-            hidden=enc_hidden.transpose(0,1),
+            hidden=enc_hidden,
             attn_memory=enc_outputs if self.attn_mode else None,
             memory_lengths=lengths if self.attn_mode else None)
         return outputs, dec_init_state

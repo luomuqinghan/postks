@@ -162,13 +162,6 @@ class KnowledgeSeq2Seq(BaseModel):
                                                       mask=inputs.cue[1].eq(0))
         cue_attn = cue_attn.squeeze(1)
         outputs.add(prior_attn=cue_attn)
-        indexs = cue_attn.max(dim=1)[1]
-        # hard attention
-        if self.use_gs:
-            knowledge = cue_outputs.gather(1, \
-                indexs.view(-1, 1, 1).repeat(1, 1, cue_outputs.size(-1)))
-        else:
-            knowledge = weighted_cue
 
         if self.use_posterior:
             tgt_enc_inputs = inputs.tgt[0][:, 1:-1], inputs.tgt[1]-2
@@ -216,8 +209,15 @@ class KnowledgeSeq2Seq(BaseModel):
                 indexs = gumbel_attn.max(-1)[1]
                 cue_attn = gumbel_attn
             else:
+                indexs = cue_attn.max(dim=1)[1]
                 knowledge = weighted_cue
-
+        else:
+            indexs = cue_attn.max(dim=1)[1]
+            # hard attention
+            if self.use_gs:
+                knowledge = cue_outputs.gather(1, indexs.view(-1, 1, 1).repeat(1, 1, cue_outputs.size(-1)))
+            else:
+                knowledge = weighted_cue
         outputs.add(indexs=indexs)
         if 'index' in inputs.keys():
             outputs.add(attn_index=inputs.index)
@@ -235,7 +235,7 @@ class KnowledgeSeq2Seq(BaseModel):
 
         if self.copy:
             dec_init_state = self.decoder.initialize_state(
-                hidden=enc_hidden.transpose(0,1),
+                hidden=enc_hidden,
                 src_enc_outputs=enc_outputs,
                 src_inputs=enc_inputs[0],
                 src_lengths=lengths,
@@ -246,7 +246,7 @@ class KnowledgeSeq2Seq(BaseModel):
                 knowledge=knowledge)
         else:
             dec_init_state = self.decoder.initialize_state(
-                hidden=enc_hidden.transpose(0,1),
+                hidden=enc_hidden,
                 src_enc_outputs=enc_outputs,
                 src_lengths=lengths,
                 knowledge=knowledge)

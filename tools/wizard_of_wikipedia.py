@@ -12,9 +12,9 @@ BOS_ID = 2
 EOS_ID = 3
 
 start_vocab = ['<pad>', '<unk>', '<bos>', '<eos>']
-data_path = '../data/wizard_of_wikipedia'
-resource_path = '../data/wizard_of_wikipedia/resource'
-untokenized_path = '../data/wizard_of_wikipedia/untokenized'
+data_path = 'data/wizard_of_wikipedia'
+resource_path = 'data/wizard_of_wikipedia/resource'
+untokenized_path = 'data/wizard_of_wikipedia/untokenized'
 vocab_path = os.path.join(data_path, 'demo_20000.vocab.pt')
 
 data = []

@@ -13,8 +13,8 @@ EOS_ID = 3
 
 start_vocab = ['<pad>', '<unk>', '<bos>', '<eos>']
 
-data_path = '../data/personachat'
-resource_path = '../data/personachat/resource'
+data_path = 'data/personachat'
+resource_path = 'data/personachat/resource'
 vocab_path = os.path.join(data_path, 'demo_20000.vocab.pt')
 
 train = []
