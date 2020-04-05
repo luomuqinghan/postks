@@ -35,7 +35,7 @@ sh train_seq2seq_personachat.sh
 
 ### Step 3: Test the Model
 
-运行train_[模型名称]_[数据集名称].sh即可测试，例如
+运行test_[模型名称]_[数据集名称].sh即可测试，例如
 
 ```bash
 sh test_seq2seq_personachat.sh
