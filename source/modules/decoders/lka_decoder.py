@@ -204,16 +204,16 @@ class RNNDecoder(nn.Module):
         cue_input = torch.cat(cue_input_list, dim=-1)
         cue_output, cue_hidden = self.cue_rnn(cue_input, hidden)
 
-        h_y = self.tanh(self.fc1(rnn_hidden))
-        local_knowledge, local_cue_attn = self.cue_attention(query=h_y[-1].unsqueeze(1),
+        local_knowledge, local_cue_attn = self.cue_attention(query=rnn_hidden[-1].unsqueeze(1),
                                                              memory=state.selected_cue_memory,
                                                              mask=state.selected_cue_mask)
         output.add(local_cue_attn=local_cue_attn)
         local_cue_input_list.append(local_knowledge)
         local_cue_input = torch.cat(local_cue_input_list, dim=-1)
         local_cue_output, local_cue_hidden = self.cue_rnn(local_cue_input, hidden)
-        local_h_cue = self.tanh(self.fc3(local_cue_hidden))
+        h_y = self.tanh(self.fc1(rnn_hidden))
         h_cue = self.tanh(self.fc2(cue_hidden))
+        local_h_cue = self.tanh(self.fc3(local_cue_hidden))
         if self.concat:
             new_hidden = self.fc4(torch.cat([h_y, h_cue, local_h_cue], dim=-1))
         else:
