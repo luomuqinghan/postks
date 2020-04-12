@@ -101,7 +101,7 @@ class MetricsManager(object):
         return metric_strs
 
 
-def evaluate(model, data_iter, verbose=False):
+def evaluate(model, data_iter):
     """
     evaluate
     """

@@ -11,6 +11,7 @@ File: source/encoders/attention.py
 
 import torch
 import torch.nn as nn
+from source.modules.embedder import Embedder
 
 from source.utils.misc import sequence_mask
 
@@ -110,3 +111,58 @@ class Attention(nn.Module):
             return project_output, weights
         else:
             return weighted_memory, weights
+
+class SelfAttention(nn.Module):
+    def __init__(self,
+                 embedder,
+                 embed_size,
+                 dependency_size,
+                 query_size,
+                 key_size=None,
+                 value_size=None,
+                 return_attn_only=False):
+        super(SelfAttention, self).__init__()
+        self.embed_size = embed_size
+        self.dependency_size = dependency_size
+        self.query_size = query_size
+        self.key_size = key_size or query_size
+        self.value_size = value_size or query_size
+        self.return_attn_only = return_attn_only
+
+        self.embedder = embedder
+        self.dependency_embedder = Embedder(num_embeddings=self.dependency_size,
+                                            embedding_dim=1, padding_idx=0)
+        self.query_linear = nn.Linear(self.embed_size, self.query_size)
+        self.key_linear = nn.Linear(self.embed_size, self.key_size)
+        self.value_linear = nn.Linear(self.embed_size, self.value_size)
+        self.ffn = nn.Sequential(nn.Linear(self.value_size, self.value_size),
+                                 nn.Tanh(),
+                                 nn.Linear(self.value_size, self.value_size))
+        self.softmax = nn.Softmax(dim=-1)
+
+
+    def __repr__(self):
+        main_string = "SelfAttentionWithDependency({}, {}, {}, {}, {})".format(self.embed_size, self.dependency_size, self.query_size, self.key_size, self.value_size)
+        return main_string
+
+    def forward(self, inputs, dependency):
+        if isinstance(inputs, tuple):
+            inputs = inputs[0]
+        inputs = self.embedder(inputs)
+        dependency_embedding = self.dependency_embedder(dependency).squeeze(3)
+        query = self.query_linear(inputs)
+        key = self.key_linear(inputs)
+        value = self.value_linear(inputs)
+
+        attn = torch.bmm(query,key.transpose(1,2)) * dependency_embedding
+        attn.masked_fill_(dependency.eq(0), -1e10)
+
+        # (batch_size, query_length, memory_length)
+        weights = self.softmax(attn)
+        if self.return_attn_only:
+            return weights
+
+        # (batch_size, query_length, memory_size)
+        weighted_memory = torch.sum(weights.unsqueeze(3)*value.unsqueeze(2),2)
+        weighted_memory = self.ffn(weighted_memory)
+        return weighted_memory, weights

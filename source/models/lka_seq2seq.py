@@ -23,7 +23,7 @@ from source.utils.misc import Pack
 from source.utils.metrics import accuracy
 from source.utils.metrics import attn_accuracy
 from source.utils.metrics import perplexity
-from source.modules.attention import Attention
+from source.modules.attention import Attention, SelfAttention
 
 class LkaSeq2seq(BaseModel):
     """
@@ -33,7 +33,9 @@ class LkaSeq2seq(BaseModel):
                  num_layers=1, bidirectional=True, attn_mode="mlp", attn_hidden_size=None, 
                  with_bridge=False, tie_embedding=False, dropout=0.0, use_gpu=False, use_bow=False,
                  use_kd=False, use_dssm=False, use_posterior=False, weight_control=False, 
-                 use_pg=False, use_gs=False, gs_tau=1.0, concat=False, copy=False, kl_annealing=False, pretrain_epoch=0):
+                 use_pg=False, use_gs=False, gs_tau=1.0, concat=False,
+                 copy=False, kl_annealing=False, pretrain_epoch=0,
+                 with_dependency=False,dependency_size=80):
         super(LkaSeq2seq, self).__init__()
 
         self.src_vocab_size = src_vocab_size
@@ -61,6 +63,8 @@ class LkaSeq2seq(BaseModel):
         self.baseline = 0
         self.copy = copy
         self.kl_annealing = kl_annealing
+        self.with_dependency = with_dependency
+        self.dependency_size = dependency_size
 
         enc_embedder = Embedder(num_embeddings=self.src_vocab_size,
                                 embedding_dim=self.embed_size, padding_idx=self.padding_idx)
@@ -99,12 +103,18 @@ class LkaSeq2seq(BaseModel):
                                              memory_size=self.hidden_size,
                                              hidden_size=self.hidden_size,
                                              mode="dot")
+        if self.with_dependency:
+            self.self_attention = SelfAttention(embedder=enc_embedder,
+                                                embed_size=embed_size,
+                                                dependency_size=dependency_size,
+                                                query_size=hidden_size)
 
         self.decoder = RNNDecoder(input_size=self.embed_size, hidden_size=self.hidden_size,
                                   output_size=self.tgt_vocab_size, embedder=dec_embedder,
                                   num_layers=self.num_layers, attn_mode=self.attn_mode,
                                   memory_size=self.hidden_size, feature_size=None,
                                   dropout=self.dropout, concat=concat)
+
         self.log_softmax = nn.LogSoftmax(dim=-1)
         self.softmax = nn.Softmax(dim=-1)
         self.sigmoid = nn.Sigmoid()
@@ -145,7 +155,10 @@ class LkaSeq2seq(BaseModel):
         outputs = Pack()
         enc_inputs = _, lengths = inputs.src[0][:, 1:-1], inputs.src[1]-2
         enc_outputs, enc_hidden = self.encoder(enc_inputs, hidden)
-
+        if self.with_dependency:
+            src_dependency = inputs.src_dependency[0]
+            enc_outputs_with_dependency,_ = self.self_attention(enc_inputs, src_dependency)
+            enc_outputs += enc_outputs_with_dependency
         if self.with_bridge:
             enc_hidden = self.bridge(enc_hidden)
 
@@ -155,6 +168,10 @@ class LkaSeq2seq(BaseModel):
         tmp_len[tmp_len > 0] -= 2
         cue_inputs = inputs.cue[0].view(-1, sent)[:, 1:-1], tmp_len.view(-1)
         cue_enc_outputs, cue_enc_hidden = self.knowledge_encoder(cue_inputs, hidden)
+        if self.with_dependency:
+            cue_dependency = inputs.cue_dependency[0].view(-1, sent-2, sent-2)
+            cue_enc_outputs_with_dependency,_ = self.self_attention(cue_inputs, cue_dependency)
+            cue_enc_outputs += cue_enc_outputs_with_dependency
         cue_enc_outputs = cue_enc_outputs.view(batch_size, sent_num, sent-2, -1)
         cue_outputs = cue_enc_hidden[-1].view(batch_size, sent_num, -1)
         # Attention
@@ -243,7 +260,7 @@ class LkaSeq2seq(BaseModel):
                 src_enc_outputs=enc_outputs,
                 src_inputs=enc_inputs[0],
                 src_lengths=lengths,
-                cue_enc_outputs=cue_enc_outputs.view(batch_size,sent_num,sent-2,-1),
+                cue_enc_outputs=cue_enc_outputs,
                 cue_inputs=inputs.cue[0][:,:,1:-1],
                 cue_lengths=inputs.cue[1],
                 knowledge=knowledge,

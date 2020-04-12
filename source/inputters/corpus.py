@@ -27,7 +27,8 @@ class Corpus(object):
                  data_dir,
                  data_prefix,
                  min_freq=0,
-                 max_vocab_size=None):
+                 max_vocab_size=None,
+                 with_dependency=False):
         self.data_dir = data_dir
         self.data_prefix = data_prefix
         self.min_freq = min_freq
@@ -42,6 +43,7 @@ class Corpus(object):
         self.filter_pred = None
         self.sort_fn = None
         self.data = None
+        self.with_dependency = with_dependency
 
     def load(self):
         """
@@ -74,9 +76,9 @@ class Corpus(object):
         prepared_data_file = prepared_data_file or self.prepared_data_file
         print("Loading prepared data from {} ...".format(prepared_data_file))
         data = torch.load(prepared_data_file)
-        self.data = {"train": Dataset(data['train']),
-                     "valid": Dataset(data["valid"]),
-                     "test": Dataset(data["test"])}
+        self.data = {"train": Dataset(data['train'], self.with_dependency),
+                     "valid": Dataset(data["valid"], self.with_dependency),
+                     "test": Dataset(data["test"], self.with_dependency)}
         print("Number of examples:",
               " ".join("{}-{}".format(k.upper(), len(v)) for k, v in self.data.items()))
 
@@ -218,11 +220,13 @@ class SrcTgtCorpus(Corpus):
                  min_len=0,
                  max_len=100,
                  embed_file=None,
-                 share_vocab=False):
+                 share_vocab=False,
+                 with_dependency=False):
         super(SrcTgtCorpus, self).__init__(data_dir=data_dir,
                                            data_prefix=data_prefix,
                                            min_freq=min_freq,
-                                           max_vocab_size=max_vocab_size)
+                                           max_vocab_size=max_vocab_size,
+                                           with_dependency=with_dependency)
         self.min_len = min_len
         self.max_len = max_len
         self.share_vocab = share_vocab
@@ -284,11 +288,13 @@ class KnowledgeCorpus(Corpus):
                  max_len=100,
                  embed_file=None,
                  share_vocab=False,
-                 with_label=False):
+                 with_label=False,
+                 with_dependency=False):
         super(KnowledgeCorpus, self).__init__(data_dir=data_dir,
                                               data_prefix=data_prefix,
                                               min_freq=min_freq,
-                                              max_vocab_size=max_vocab_size)
+                                              max_vocab_size=max_vocab_size,
+                                              with_dependency=with_dependency)
         self.min_len = min_len
         self.max_len = max_len
         self.share_vocab = share_vocab

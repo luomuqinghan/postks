@@ -1,0 +1,2 @@
+#!/bin/bash
+python ./network.py --gpu 0 --model seq2seq --data_dir ./data/revised_personachat --max_dec_len 21 --max_vocab_size 20000 --use_posterior False --gen_file ./output/seq2seq/revised_personachat/test.result --gold_score_file ./output/seq2seq/revised_personachat/gold.scores --ckpt ./models/seq2seq/revised_personachat/best.model --test > output/seq2seq/revised_personachat/test.log

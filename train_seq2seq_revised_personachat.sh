@@ -1,0 +1,2 @@
+#!/bin/bash
+python ./network.py --model seq2seq --data_dir ./data/revised_personachat --save_dir ./models/seq2seq/revised_personachat --embed_file /home/cx/WordEmbedding/glove.6B.300d.txt --max_vocab_size 20000 --lr 0.0005 --max_dec_len 21 --valid_steps 958 --gpu 1

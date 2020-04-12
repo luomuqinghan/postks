@@ -58,6 +58,8 @@ def model_config():
     net_arg.add_argument("--share_vocab", type=str2bool, default=True)
     net_arg.add_argument("--with_bridge", type=str2bool, default=True)
     net_arg.add_argument("--tie_embedding", type=str2bool, default=True)
+    net_arg.add_argument("--with_dependency", type=str2bool, default=False)
+    net_arg.add_argument("--dependency_size", type=int, default=90)
 
     # Training / Testing
     train_arg = parser.add_argument_group("Training")
@@ -124,7 +126,7 @@ def main():
                              min_freq=0, max_vocab_size=config.max_vocab_size,
                              min_len=config.min_len, max_len=config.max_len,
                              embed_file=config.embed_file, with_label=config.with_label,
-                             share_vocab=config.share_vocab)
+                             share_vocab=config.share_vocab, with_dependency=config.with_dependency)
     corpus.load()
     # if config.test and config.ckpt:
     #     corpus.reload(data_type='test')
@@ -168,7 +170,9 @@ def main():
                            weight_control=config.weight_control,
                            concat=config.decode_concat,
                            copy=config.copy,
-                           kl_annealing=config.kl_annealing)
+                           kl_annealing=config.kl_annealing,
+                           with_dependency=config.with_dependency,
+                           dependency_size=config.dependency_size)
     elif config.model=='seq2seq':
         model = Seq2Seq(src_vocab_size=corpus.SRC.vocab_size,
                         tgt_vocab_size=corpus.TGT.vocab_size,
@@ -184,7 +188,7 @@ def main():
     generator = TopKGenerator(model=model,
                               src_field=corpus.SRC, tgt_field=corpus.TGT, cue_field=corpus.CUE,
                               k=config.beam_size, max_length=config.max_dec_len, ignore_unk=config.ignore_unk,
-			      length_average=config.length_average, use_gpu=config.use_gpu)
+			                  length_average=config.length_average, use_gpu=config.use_gpu)
     # Interactive generation testing
     if config.interact and config.ckpt:
         model.load(config.ckpt)

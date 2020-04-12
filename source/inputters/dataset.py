@@ -11,17 +11,23 @@ File: source/inputters/dataset.py
 
 import torch
 from torch.utils.data import DataLoader
+import random
+import numpy as np
 
 from source.utils.misc import Pack
 from source.utils.misc import list2tensor
-
 
 class Dataset(torch.utils.data.Dataset):
     """
     Dataset
     """
-    def __init__(self, data):
+    def __init__(self, data, with_dependency=False):
+        if not with_dependency:
+            for i in range(len(data)):
+                for s in ['src','tgt','cue']:
+                    del data[i][s+'_dependency']
         self.data = data
+
 
     def __len__(self):
         return len(self.data)

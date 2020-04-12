@@ -77,7 +77,10 @@ def calc_cover_rate(pair_list, ngram):
     for pair in pair_list:
         pred_tokens, gold_tokens = pair
         count(pred_tokens, gold_tokens, ngram, result)
-    cover_rate = result[0] / result[1]
+    if result[1] == 0:
+        cover_rate = 0
+    else:
+        cover_rate = result[0] / result[1]
     return cover_rate 
 
 
