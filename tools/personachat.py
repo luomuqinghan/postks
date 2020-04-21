@@ -4,7 +4,6 @@ import json
 import numpy as np
 import re
 import torch
-from tqdm import tqdm
 from tqdm import trange
 from copy import deepcopy
 import spacy
@@ -163,17 +162,22 @@ else:
             except KeyError:
                 vocab_dict[w] = 1
     vocab_list = sorted(vocab_dict.items(), key=lambda x: x[1], reverse=True)
-    vocab_list = [x for x, y in vocab_list]
+    vocab_list = [x for x,y in filter(lambda x:x[1]>1,vocab_list)]
     vocab_list = start_vocab + vocab_list[:20000]
     embeddings = np.zeros((len(vocab_list), 300))
+    embedding_dict = {}
     with open('/home/cx/WordEmbedding/glove.6B.300d.txt') as f:
-        lines = [line.strip().split() for line in f.readlines()]
-        lines = dict([(' '.join(line[:-300]), np.array([float(x) for x in line[-300:]])) for line in lines])
-        for i in trange(len(vocab_list)):
-            try:
-                embeddings[i] = lines[vocab_list[i]]
-            except KeyError:
-                pass
+        lines = f.read()
+    lines = lines.split('\n')
+    for i in trange(len(lines)):
+        lines[i] = lines[i].split()
+        embedding_dict[' '.join(lines[i][:-300])] = np.array([float(x) for x in lines[i][-300:]])
+    del lines
+    for i in range(len(vocab_list)):
+        try:
+            embeddings[i] = embedding_dict[vocab_list[i]]
+        except KeyError:
+            pass
 
     dependency_label = list(set([y[0] for x in dependency_parsed for y in x]))
     dependency_label.remove('ROOT')
@@ -186,8 +190,7 @@ else:
 
 dependency_label = dict(list(zip(dependency_label, list(range(len(dependency_label))))))
 vocab_dict = dict([(y, x) for x, y in enumerate(vocab_list)])
-print('dependency tagging')
-for i in trange(len(dependency_parsed)):
+for i in range(len(dependency_parsed)):
     dependency = [(1,j,j) for j in range(len(dependency_parsed[i]))]
     for x in dependency_parsed[i]:
         if x[0] != 'ROOT':
