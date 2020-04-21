@@ -133,15 +133,21 @@ else:
     vocab_list = [x for x,y in vocab_list]
     vocab_list = start_vocab + vocab_list[:20000]
     vocab_dict = dict([(y,x) for x,y in enumerate(vocab_list)])
-    embeddings = np.zeros((len(vocab_list),300))
+    embeddings = np.zeros((len(vocab_list), 300))
+    embedding_dict = {}
     with open('/home/cx/WordEmbedding/glove.6B.300d.txt') as f:
-        lines = f.readlines()
-        for i in trange(len(lines)):
-            line = lines[i].strip().split()
-            weight = np.array([float(x) for x in line[-300:]])
-            word = ' '.join(line[:-300])
-            if word in vocab_list:
-                embeddings[vocab_list.index(word)] = weight
+        lines = f.read()
+    lines = lines.split('\n')
+    for i in trange(len(lines)):
+        lines[i] = lines[i].split()
+        embedding_dict[' '.join(lines[i][:-300])] = np.array([float(x) for x in lines[i][-300:]])
+    del lines
+    for i in range(len(vocab_list)):
+        try:
+            embeddings[i] = embedding_dict[vocab_list[i]]
+        except KeyError:
+            pass
+    del embedding_dict
     vocab = {'src':{'itos':vocab_list,'embeddings':embeddings}}
     vocab['tgt'] = vocab['src']
     vocab['cue'] = vocab['src']
