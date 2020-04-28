@@ -22,6 +22,7 @@ from source.inputters.corpus import KnowledgeCorpus
 from source.models.knowledge_seq2seq import KnowledgeSeq2Seq
 from source.models.seq2seq import Seq2Seq
 from source.models.lka_seq2seq import LkaSeq2seq
+from source.models.lka_de_seq2seq import LkaDeSeq2seq
 from source.utils.engine import Trainer
 from source.utils.generator import TopKGenerator
 from source.utils.engine import evaluate, evaluate_generation
@@ -63,6 +64,7 @@ def model_config():
     train_arg = parser.add_argument_group("Training")
     train_arg.add_argument("--coverage_loss_weight", type=float, default=1.0)
     train_arg.add_argument("--optimizer", type=str, default="Adam")
+    train_arg.add_argument("--pretrain_lr", type=float, default=5e-6)
     train_arg.add_argument("--lr", type=float, default=0.00005)
     train_arg.add_argument("--grad_clip", type=float, default=5.0)
     train_arg.add_argument("--dropout", type=float, default=0.3)
@@ -86,6 +88,7 @@ def model_config():
     gen_arg = parser.add_argument_group("Generation")
     gen_arg.add_argument("--beam_size", type=int, default=1)
     gen_arg.add_argument("--max_dec_len", type=int, default=30)
+    gen_arg.add_argument("--max_draft_len", type=int, default=14)
     gen_arg.add_argument("--ignore_unk", type=str2bool, default=True)
     gen_arg.add_argument("--length_average", type=str2bool, default=True)
     gen_arg.add_argument("--gen_file", type=str, default="./test.result")
@@ -169,6 +172,27 @@ def main():
                            concat=config.decode_concat,
                            copy=config.copy,
                            kl_annealing=config.kl_annealing)
+    elif config.model=='lkadeseq2seq':
+        model = LkaDeSeq2seq(src_vocab_size=corpus.SRC.vocab_size,
+                             tgt_vocab_size=corpus.TGT.vocab_size,
+                             embed_size=config.embed_size, hidden_size=config.hidden_size,
+                             padding_idx=corpus.padding_idx,
+                             num_layers=config.num_layers, bidirectional=config.bidirectional,
+                             attn_mode=config.attn, with_bridge=config.with_bridge,
+                             tie_embedding=config.tie_embedding, dropout=config.dropout,
+                             use_gpu=config.use_gpu,
+                             use_bow=config.use_bow, use_dssm=config.use_dssm,
+                             use_pg=config.use_pg, use_gs=config.use_gs, gs_tau=config.gs_tau,
+                             pretrain_epoch=config.pretrain_epoch,
+                             use_posterior=config.use_posterior,
+                             weight_control=config.weight_control,
+                             concat=config.decode_concat,
+                             copy=config.copy,
+                             kl_annealing=config.kl_annealing,
+                             tgt_field=corpus.TGT,
+                             max_draft_len=config.max_draft_len,
+                             pretrain_lr=config.pretrain_lr,
+                             lr=config.lr)
     elif config.model=='seq2seq':
         model = Seq2Seq(src_vocab_size=corpus.SRC.vocab_size,
                         tgt_vocab_size=corpus.TGT.vocab_size,
@@ -184,7 +208,7 @@ def main():
     generator = TopKGenerator(model=model,
                               src_field=corpus.SRC, tgt_field=corpus.TGT, cue_field=corpus.CUE,
                               k=config.beam_size, max_length=config.max_dec_len, ignore_unk=config.ignore_unk,
-			      length_average=config.length_average, use_gpu=config.use_gpu)
+			                  length_average=config.length_average, use_gpu=config.use_gpu)
     # Interactive generation testing
     if config.interact and config.ckpt:
         model.load(config.ckpt)

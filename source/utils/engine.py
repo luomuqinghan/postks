@@ -197,6 +197,16 @@ class Trainer(object):
         num_batches = len(self.train_iter)
         self.logger.info(self.train_start_message)
 
+        # Codes only for debuging
+        # if self.generator is not None:
+        #     self.logger.info("Generation starts ...")
+        #     gen_save_file = os.path.join(
+        #         self.save_dir, "valid_{}.result").format(self.epoch)
+        #     gen_eval_metrics = evaluate_generation(generator=self.generator,
+        #                                            data_iter=self.valid_iter,
+        #                                            save_file=gen_save_file)
+        #     self.logger.info(gen_eval_metrics)
+
         for batch_id, inputs in enumerate(self.train_iter, 1):
             self.model.train()
             start_time = time.time()

@@ -1,5 +1,5 @@
 import os
-import nltk
+from nltk import word_tokenize, pos_tag
 import json
 import numpy as np
 import re
@@ -16,6 +16,9 @@ start_vocab = ['<pad>', '<unk>', '<bos>', '<eos>']
 data_path = 'data/personachat'
 resource_path = 'data/personachat/resource'
 vocab_path = os.path.join(data_path, 'demo_20000.vocab.pt')
+
+with open(os.path.join(resource_path,'stopwords.txt')) as f:
+    stopwords = f.read().split('\n\n')
 
 train = []
 flush = False
@@ -34,8 +37,9 @@ with open(os.path.join(resource_path, 'train_both_original.txt')) as f:
             train[-1][0].append(x[x.index(' ')+20:])
         else:
             dialogue = x[x.index(' ')+1:].split('\t')[:2]
-            train[-2][1].append(dialogue)
-            if pre_dialogue:
+            if '?' not in dialogue[1]:
+                train[-2][1].append(dialogue)
+            if pre_dialogue and '?' not in dialogue[0]:
                 train[-1][1].append([pre_dialogue[1],dialogue[0]])
             flush = False
             pre_dialogue = dialogue
@@ -58,8 +62,9 @@ with open(os.path.join(resource_path, 'valid_both_original.txt')) as f:
             valid[-1][0].append(x[x.index(' ')+20:])
         else:
             dialogue = x[x.index(' ')+1:].split('\t')[:2]
-            valid[-2][1].append(dialogue)
-            if pre_dialogue:
+            if '?' not in dialogue[1]:
+                valid[-2][1].append(dialogue)
+            if pre_dialogue and '?' not in dialogue[0]:
                 valid[-1][1].append([pre_dialogue[1],dialogue[0]])
             flush = False
             pre_dialogue = dialogue
@@ -81,8 +86,9 @@ with open(os.path.join(resource_path, 'test_both_original.txt')) as f:
             test[-1][0].append(x[x.index(' ')+20:])
         else:
             dialogue = x[x.index(' ')+1:].split('\t')[:2]
-            test[-2][1].append(dialogue)
-            if pre_dialogue:
+            if '?' not in dialogue[1]:
+                test[-2][1].append(dialogue)
+            if pre_dialogue and '?' not in dialogue[0]:
                 test[-1][1].append([pre_dialogue[1],dialogue[0]])
             flush = False
             pre_dialogue = dialogue
@@ -113,17 +119,18 @@ for i in range(len(test)):
     test[i][0] = [sentences[x] for x in test[i][0]]
     test[i][1] = [[sentences[y] for y in x] for x in test[i][1]]
 
-sentences = dict([(y,x) for x,y in sentences.items()])
-
-for k,v in sentences.items():
-    sentences[k] = [re.sub('\d+','<num>',x) for x in nltk.word_tokenize(v)]
+sentences = list(sentences.keys())
+keywords = []
+tagset = ['NOUN','VERB','ADJ','ADV']
+for i in range(len(sentences)):
+    sentences[i] = [re.sub('\d+','<num>',x) for x in word_tokenize(sentences[i])]
 
 if os.path.isfile(vocab_path):
     vocab_list = torch.load(vocab_path)['src']['itos']
     vocab_dict = dict(zip(vocab_list,list(range(len(vocab_list)))))
 else:
     vocab_dict = {}
-    for k,v in sentences.items():
+    for v in sentences:
         for w in v:
             try:
                 vocab_dict[w] += 1
@@ -153,17 +160,48 @@ else:
     vocab['cue'] = vocab['src']
     torch.save(vocab, vocab_path)
 
-for i in range(len(train)):
+
+for i in trange(len(train)):
     train[i][0] = [[BOS_ID]+[vocab_dict.get(y, UNK_ID) for y in sentences[x]]+[EOS_ID] for x in train[i][0]]
-    train[i][1] = [[[BOS_ID]+[vocab_dict.get(z, UNK_ID) for z in sentences[y]]+[EOS_ID] for y in x] for x in train[i][1]]
-
-for i in range(len(valid)):
+    for j in range(len(train[i][1])):
+        post = sentences[train[i][1][j][0]]
+        response = sentences[train[i][1][j][1]]
+        keywords = []
+        for x in pos_tag(response, tagset='universal'):
+            if x[0] in vocab_list and x[0] not in stopwords and x[1] in tagset:
+                keywords.append(x[0])
+        post = [vocab_dict.get(x, UNK_ID) for x in post]
+        response = [BOS_ID]+[vocab_dict.get(x, UNK_ID) for x in response]+[EOS_ID]
+        keywords = [BOS_ID]+[vocab_dict.get(x, UNK_ID) for x in keywords]+[EOS_ID]
+        train[i][1][j] = [post,response,keywords]
+        
+for i in trange(len(valid)):
     valid[i][0] = [[BOS_ID]+[vocab_dict.get(y, UNK_ID) for y in sentences[x]]+[EOS_ID] for x in valid[i][0]]
-    valid[i][1] = [[[BOS_ID]+[vocab_dict.get(z, UNK_ID) for z in sentences[y]]+[EOS_ID] for y in x] for x in valid[i][1]]
-
-for i in range(len(test)):
+    for j in range(len(valid[i][1])):
+        post = sentences[valid[i][1][j][0]]
+        response = sentences[valid[i][1][j][1]]
+        keywords = []
+        for x in pos_tag(response, tagset='universal'):
+            if x[0] in vocab_list and x[0] not in stopwords and x[1] in tagset:
+                keywords.append(x[0])
+        post = [vocab_dict.get(x, UNK_ID) for x in post]
+        response = [BOS_ID]+[vocab_dict.get(x, UNK_ID) for x in response]+[EOS_ID]
+        keywords = [BOS_ID]+[vocab_dict.get(x, UNK_ID) for x in keywords]+[EOS_ID]
+        valid[i][1][j] = [post,response,keywords]
+        
+for i in trange(len(test)):
     test[i][0] = [[BOS_ID]+[vocab_dict.get(y, UNK_ID) for y in sentences[x]]+[EOS_ID] for x in test[i][0]]
-    test[i][1] = [[[BOS_ID]+[vocab_dict.get(z, UNK_ID) for z in sentences[y]]+[EOS_ID] for y in x] for x in test[i][1]]
+    for j in range(len(test[i][1])):
+        post = sentences[test[i][1][j][0]]
+        response = sentences[test[i][1][j][1]]
+        keywords = []
+        for x in pos_tag(response, tagset='universal'):
+            if x[0] in vocab_list and x[0] not in stopwords and x[1] in tagset:
+                keywords.append(x[0])
+        post = [vocab_dict.get(x, UNK_ID) for x in post]
+        response = [BOS_ID]+[vocab_dict.get(x, UNK_ID) for x in response]+[EOS_ID]
+        keywords = [BOS_ID]+[vocab_dict.get(x, UNK_ID) for x in keywords]+[EOS_ID]
+        test[i][1][j] = [post,response,keywords]
 
 # idf = [0 for _ in range(len(vocab_list))]
 # data = train + valid + test
@@ -195,13 +233,13 @@ data = {}
 data['train'] = []
 for x in train:
     for y in x[1]:
-        data['train'].append({'src':y[0],'tgt':y[1],'cue':x[0]})
+        data['train'].append({'src':y[0],'tgt':y[1],'cue':x[0],'keywords':y[2]})
 data['valid'] = []
 for x in valid:
     for y in x[1]:
-        data['valid'].append({'src':y[0],'tgt':y[1],'cue':x[0]})
+        data['valid'].append({'src':y[0],'tgt':y[1],'cue':x[0],'keywords':y[2]})
 data['test'] = []
 for x in test:
     for y in x[1]:
-        data['test'].append({'src':y[0],'tgt':y[1],'cue':x[0]})
+        data['test'].append({'src':y[0],'tgt':y[1],'cue':x[0],'keywords':y[2]})
 torch.save(data, os.path.join(data_path, 'demo_20000.data.pt'))

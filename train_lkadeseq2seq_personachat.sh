@@ -1,0 +1,1 @@
+python ./network.py --gpu 0 --use_gs True --gs_tau 0.2 --use_bow False --model lkadeseq2seq --data_dir ./data/personachat --save_dir ./models/lkadeseq2seq/personachat --embed_file /home/cx/WordEmbedding/glove.6B.300d.txt --max_vocab_size 20000 --lr 0.0005 --max_dec_len 21 --valid_steps 100
